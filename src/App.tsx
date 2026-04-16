@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Eye, ArrowRight, CheckCircle2, Circle, Settings, Activity, Info, RefreshCw, Trophy, Spline } from 'lucide-react';
+import { Play, Eye, ArrowRight, CheckCircle2, Circle, Settings, Activity, Info, RefreshCw, Trophy, Spline, Timer, Zap } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { LEVELS, Level } from '@/src/types';
 import { BezierEditor } from '@/src/components/BezierEditor';
@@ -13,7 +13,9 @@ import { SimulationStage } from '@/src/components/SimulationStage';
 
 export default function App() {
   const [gameState, setGameState] = useState<'start' | 'observe' | 'play' | 'result' | 'final'>('start');
-  const [gameMode, setGameMode] = useState<'easy' | 'hard'>('easy');
+  const [gameMode, setGameMode] = useState<'easy' | 'hard' | 'insane'>('easy');
+  const [timeLimit, setTimeLimit] = useState<15 | 30 | 60>(30);
+  const [timeLeft, setTimeLeft] = useState(30);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [userBezier, setUserBezier] = useState<[number, number, number, number]>([0.25, 0.1, 0.25, 1]);
   const [isPlayingReference, setIsPlayingReference] = useState(false);
@@ -35,8 +37,26 @@ export default function App() {
 
   const [randomTarget, setRandomTarget] = useState<[number, number, number, number]>(LEVELS[0].targetBezier);
 
-  const startGame = (mode: 'easy' | 'hard') => {
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (gameState === 'play' && gameMode === 'insane' && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && gameState === 'play' && gameMode === 'insane') {
+      setGameState('final');
+      setIsPlayingReference(false);
+      setIsPlayingUser(false);
+    }
+    return () => clearInterval(timer);
+  }, [gameState, gameMode, timeLeft]);
+
+  const startGame = (mode: 'easy' | 'hard' | 'insane', limit?: 15 | 30 | 60) => {
     setGameMode(mode);
+    if (mode === 'insane' && limit) {
+      setTimeLimit(limit);
+      setTimeLeft(limit);
+    }
     setGameState('observe');
     setObservationLoops(0);
     setRandomTarget(generateRandomBezier());
@@ -49,7 +69,7 @@ export default function App() {
       
       setObservationLoops(prev => {
         const nextLoop = prev + 1;
-        const maxLoops = gameMode === 'hard' ? 1 : 2;
+        const maxLoops = gameMode === 'easy' ? 2 : 1; // Insane also gets 1 loop
         if (nextLoop < maxLoops) {
           // Play second loop after a short delay
           setTimeout(() => setIsPlayingReference(true), 100);
@@ -132,47 +152,78 @@ export default function App() {
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="h-full flex items-center justify-center p-4 md:p-8"
           >
-            <div className="w-full max-w-5xl h-full max-h-[70vh] flex flex-col items-center justify-center border border-outline bg-surface text-on-surface font-body shadow-2xl text-center p-12 md:p-20 gap-12">
+            <div className="w-full max-w-5xl h-full max-h-[85vh] flex flex-col items-center justify-center border border-outline bg-surface text-on-surface font-body shadow-2xl text-center p-8 md:p-12 gap-8 overflow-y-auto">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="flex flex-col items-center gap-4"
+                className="flex flex-col items-center gap-2"
               >
-                <Spline className="text-primary" size={80} />
-                <h1 className="text-7xl font-black uppercase tracking-tighter">
+                <Spline className="text-primary" size={60} />
+                <h1 className="text-6xl font-black uppercase tracking-tighter">
                   Graph Copy
                 </h1>
-                <p className="text-on-surface-variant font-mono text-sm uppercase tracking-widest">
+                <p className="text-on-surface-variant font-mono text-xs uppercase tracking-widest">
                   The Easing Lab / Kinetic Training
                 </p>
               </motion.div>
               
-            <div className="flex flex-col md:flex-row gap-6">
-              <motion.button 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => startGame('easy')}
-                className="px-12 py-5 border-2 border-primary text-primary font-bold uppercase tracking-[0.2em] text-lg hover:bg-primary hover:text-on-primary transition-all"
-              >
-                Easy Mode
-              </motion.button>
+              <div className="flex flex-col gap-8 w-full max-w-4xl">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => startGame('easy')}
+                    className="flex flex-col items-center gap-4 p-6 border border-outline hover:border-primary transition-colors group"
+                  >
+                    <div className="w-12 h-12 flex items-center justify-center border border-outline group-hover:border-primary">
+                      <Circle className="text-on-surface-variant group-hover:text-primary" size={24} />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="font-black uppercase tracking-tight">Easy Mode</h3>
+                      <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Standard Training</p>
+                    </div>
+                  </motion.button>
 
-              <motion.button 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => startGame('hard')}
-                className="px-12 py-5 bg-primary text-on-primary font-bold uppercase tracking-[0.2em] text-lg hover:brightness-110 transition-all"
-              >
-                Hard Mode
-              </motion.button>
-            </div>
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => startGame('hard')}
+                    className="flex flex-col items-center gap-4 p-6 border border-outline hover:border-primary transition-colors group"
+                  >
+                    <div className="w-12 h-12 flex items-center justify-center border border-outline group-hover:border-primary">
+                      <Zap className="text-on-surface-variant group-hover:text-primary" size={24} />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="font-black uppercase tracking-tight">Hard Mode</h3>
+                      <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Hidden Coordinates</p>
+                    </div>
+                  </motion.button>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col items-center gap-4 p-6 border border-outline bg-surface-container/30">
+                      <div className="w-12 h-12 flex items-center justify-center border border-outline text-primary">
+                        <Timer size={24} />
+                      </div>
+                      <div className="text-center">
+                        <h3 className="font-black uppercase tracking-tight">Insane Mode</h3>
+                        <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Time Pressure</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {[15, 30, 60].map((limit) => (
+                        <button
+                          key={limit}
+                          onClick={() => startGame('insane', limit as 15 | 30 | 60)}
+                          className="flex-1 py-2 border border-outline hover:border-primary font-mono text-[10px] uppercase tracking-widest transition-colors"
+                        >
+                          {limit}s
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -253,8 +304,19 @@ export default function App() {
                   <Spline className="text-primary" size={16} />
                   <span className="text-[10px] font-black uppercase tracking-widest">Match Phase</span>
                 </div>
-                <div className="font-mono text-[10px] text-on-surface-variant">
-                  ROUND {roundScores.length + 1} / 5
+                <div className="font-mono text-[10px] text-on-surface-variant flex items-center gap-4">
+                  {gameMode === 'insane' && (
+                    <div className={cn(
+                      "flex items-center gap-2 px-4 py-2 border-2 transition-all duration-300",
+                      timeLeft <= 5 
+                        ? "border-primary bg-primary/10 text-primary scale-110 shadow-[0_0_15px_rgba(204,255,0,0.3)]" 
+                        : "border-outline bg-surface-container"
+                    )}>
+                      <Timer size={14} className={cn(timeLeft <= 5 && "animate-spin-slow")} />
+                      <span className="text-sm font-black tracking-tighter">{timeLeft}S</span>
+                    </div>
+                  )}
+                  <span className="bg-surface-container px-3 py-1 border border-outline">ROUND {roundScores.length + 1} / 5</span>
                 </div>
               </header>
               
@@ -422,7 +484,10 @@ export default function App() {
               </div>
               
               <div className="text-9xl font-black font-mono text-primary my-4">
-                {Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)}%
+                {roundScores.length > 0 
+                  ? `${Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)}%`
+                  : <span className="text-6xl text-primary animate-pulse">TIME OUT</span>
+                }
               </div>
 
               <div className="grid grid-cols-5 gap-4 w-full max-w-md mb-8">
