@@ -232,7 +232,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="h-full flex items-center justify-center p-4 md:p-6"
           >
-            <div className="w-full max-w-4xl h-full max-h-[90vh] flex flex-col border border-outline bg-surface text-on-surface font-body shadow-2xl overflow-hidden">
+            <div className="w-full max-w-6xl h-full max-h-[90vh] flex flex-col border border-outline bg-surface text-on-surface font-body shadow-2xl overflow-hidden">
               <header className="h-14 px-6 flex items-center justify-between border-b border-outline bg-surface-container">
                 <div className="flex items-center gap-3">
                   <Spline className="text-primary" size={16} />
@@ -243,30 +243,50 @@ export default function App() {
                 </div>
               </header>
               
-              <div className="flex-grow p-6 flex flex-col gap-4 overflow-hidden">
-                <div className="flex flex-col gap-0.5">
-                  <h2 className="text-2xl font-black uppercase tracking-tighter">Bezier Workspace</h2>
-                  <p className="text-on-surface-variant font-mono text-[9px] uppercase tracking-widest">Adjust control points to match the motion</p>
-                </div>
+              <div className="flex-grow flex flex-row overflow-hidden">
+                {/* Left Column: Preview & Info */}
+                <div className="w-1/3 border-r border-outline p-6 flex flex-col gap-6 bg-surface-container/30">
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Live Preview</h2>
+                    <p className="text-on-surface-variant font-mono text-[9px] uppercase tracking-widest">Observe your current curve behavior</p>
+                  </div>
 
-                <div className="w-full">
-                  <SimulationStage 
-                    referenceBezier={randomTarget}
-                    userBezier={userBezier}
-                    isPlayingReference={false}
-                    isPlayingUser={isPlayingUser}
-                    onAnimationComplete={handleAnimationComplete}
-                    duration={1}
-                  />
-                </div>
-
-                <div className="flex-grow flex items-center justify-center min-h-0">
-                  <div className="w-full max-w-3xl">
-                    <BezierEditor 
-                      value={userBezier} 
-                      onChange={setUserBezier} 
-                      hideValues={gameMode === 'hard'}
+                  <div className="w-full">
+                    <SimulationStage 
+                      referenceBezier={randomTarget}
+                      userBezier={userBezier}
+                      isPlayingReference={false}
+                      isPlayingUser={isPlayingUser}
+                      onAnimationComplete={handleAnimationComplete}
+                      duration={1}
                     />
+                  </div>
+
+                  <div className="mt-auto p-4 border border-outline bg-surface-container text-[10px] font-mono text-on-surface-variant leading-relaxed">
+                    <p className="font-bold text-primary mb-2 uppercase">Pro Tips:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li>Hold <kbd className="bg-surface px-1 border border-outline">SHIFT</kbd> to snap to grid</li>
+                      <li>Y-axis is expanded for <span className="text-primary">Bounce</span> & <span className="text-primary">Elastic</span> effects</li>
+                      <li>Match the ball's rhythm, not just the curve shape</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Right Column: Editor */}
+                <div className="flex-grow p-6 flex flex-col gap-4 overflow-hidden">
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Bezier Workspace</h2>
+                    <p className="text-on-surface-variant font-mono text-[9px] uppercase tracking-widest">Adjust control points to match the motion</p>
+                  </div>
+
+                  <div className="flex-grow flex items-center justify-center min-h-0">
+                    <div className="w-full max-w-2xl h-full flex items-center">
+                      <BezierEditor 
+                        value={userBezier} 
+                        onChange={setUserBezier} 
+                        hideValues={gameMode === 'hard'}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
