@@ -30,7 +30,8 @@ export const BezierEditor: React.FC<BezierEditorProps> = ({ value, onChange, hid
       const height = rect.height;
 
       let x = (e.clientX - rect.left) / width;
-      let y = 1 - (e.clientY - rect.top) / height;
+      // Map mouse position (0 to 1) to Y range (1.5 to -0.5)
+      let y = 1.5 - ((e.clientY - rect.top) / height) * 2;
 
       // Grid Snapping when Shift is held
       if (e.shiftKey) {
