@@ -275,6 +275,47 @@ export default function App() {
                     </div>
                   </motion.button>
                 </div>
+
+                {/* Guide Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left border-t border-outline pt-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Info size={16} />
+                      <h4 className="text-xs font-black uppercase tracking-widest">How to Play</h4>
+                    </div>
+                    <ul className="space-y-2 text-[10px] text-on-surface-variant font-mono uppercase tracking-wider leading-relaxed">
+                      <li className="flex gap-3">
+                        <span className="text-primary font-black">01</span>
+                        <span>Observe the Reference Motion and memorize its acceleration pattern.</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-primary font-black">02</span>
+                        <span>Adjust the Bezier handles to replicate the motion curve.</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-primary font-black">03</span>
+                        <span>Apply to compare your motion with the original and see your accuracy score.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Settings size={16} />
+                      <h4 className="text-xs font-black uppercase tracking-widest">Keyboard Shortcuts</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between p-3 border border-outline bg-surface-container/20">
+                        <span className="text-[9px] font-mono text-on-surface-variant uppercase">Reset Graph</span>
+                        <kbd className="px-2 py-1 bg-surface-container border border-outline rounded text-[9px] font-black">SPACE</kbd>
+                      </div>
+                      <div className="flex items-center justify-between p-3 border border-outline bg-surface-container/20">
+                        <span className="text-[9px] font-mono text-on-surface-variant uppercase">Apply / Next</span>
+                        <kbd className="px-2 py-1 bg-surface-container border border-outline rounded text-[9px] font-black">ENTER</kbd>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
