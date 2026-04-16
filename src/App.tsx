@@ -402,10 +402,10 @@ export default function App() {
                     <div className={cn(
                       "flex items-center gap-2 px-4 py-2 border-2 transition-all duration-300",
                       timeLeft <= 5 
-                        ? "border-primary bg-primary/10 text-primary scale-110 shadow-[0_0_15px_rgba(204,255,0,0.3)]" 
+                        ? "border-primary bg-primary text-on-primary scale-125 shadow-[0_0_25px_rgba(204,255,0,0.6)] animate-pulse z-50" 
                         : "border-outline bg-surface-container"
                     )}>
-                      <Timer size={14} className={cn(timeLeft <= 5 && "animate-spin-slow")} />
+                      <Timer size={14} className={cn(timeLeft <= 5 && "animate-spin")} />
                       <span className="text-sm font-black tracking-tighter">{timeLeft}S</span>
                     </div>
                   )}
