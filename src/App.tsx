@@ -64,6 +64,14 @@ export default function App() {
     } else if (gameState === 'play') {
       setIsPlayingUser(false);
       setTimeout(() => setIsPlayingUser(true), 100);
+    } else if (gameState === 'result') {
+      setIsPlayingReference(false);
+      setIsPlayingUser(false);
+      // Seamless loop for comparison: restart immediately
+      requestAnimationFrame(() => {
+        setIsPlayingReference(true);
+        setIsPlayingUser(true);
+      });
     } else {
       setIsPlayingReference(false);
       setIsPlayingUser(false);
@@ -82,6 +90,8 @@ export default function App() {
     const newScores = [...roundScores, finalScore];
     setRoundScores(newScores);
     setGameState('result');
+    setIsPlayingReference(true);
+    setIsPlayingUser(true);
   };
 
   const nextRound = () => {
@@ -93,8 +103,11 @@ export default function App() {
       setGameState('observe');
       setObservationLoops(0);
       setIsPlayingReference(true);
+      setIsPlayingUser(false);
     } else {
       setGameState('final');
+      setIsPlayingReference(false);
+      setIsPlayingUser(false);
     }
   };
 
@@ -103,6 +116,8 @@ export default function App() {
     setRoundScores([]);
     setUserBezier([0.25, 0.1, 0.25, 1]);
     setGameState('start');
+    setIsPlayingReference(false);
+    setIsPlayingUser(false);
   };
 
   return (
@@ -348,6 +363,18 @@ export default function App() {
                     {roundScores[roundScores.length - 1] >= 90 ? "Masterful!" : "Analyzed"}
                   </h3>
                   <p className="text-on-surface-variant font-mono text-xs uppercase tracking-widest">Round {roundScores.length} Accuracy</p>
+                </div>
+
+                <div className="w-full max-w-xl">
+                  <SimulationStage 
+                    referenceBezier={randomTarget}
+                    userBezier={userBezier}
+                    isPlayingReference={isPlayingReference}
+                    isPlayingUser={isPlayingUser}
+                    onAnimationComplete={handleAnimationComplete}
+                    duration={1}
+                    forceComparisonMode={true}
+                  />
                 </div>
 
                 <motion.div 
