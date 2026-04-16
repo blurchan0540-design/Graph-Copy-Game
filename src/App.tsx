@@ -337,35 +337,35 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="h-full flex items-center justify-center p-4 md:p-8"
           >
-            <div className="w-full max-w-3xl h-full max-h-[75vh] flex flex-col border border-outline bg-surface text-on-surface font-body shadow-2xl overflow-hidden">
-              <header className="h-16 px-8 flex items-center justify-between border-b border-outline bg-surface-container">
+            <div className="w-full max-w-3xl h-full max-h-[90vh] flex flex-col border border-outline bg-surface text-on-surface font-body shadow-2xl overflow-hidden">
+              <header className="h-14 px-6 flex items-center justify-between border-b border-outline bg-surface-container">
                 <div className="flex items-center gap-3">
-                  <Activity className="text-primary" size={18} />
-                  <span className="text-xs font-black uppercase tracking-widest">Analysis Result</span>
+                  <Activity className="text-primary" size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Analysis Result</span>
                 </div>
               </header>
               
-              <div className="flex-grow p-16 flex flex-col items-center justify-center text-center gap-8">
+              <div className="flex-grow p-8 flex flex-col items-center justify-center text-center gap-4 overflow-y-auto">
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
                   className={cn(
-                    "w-24 h-24 flex items-center justify-center border-2",
+                    "w-16 h-16 flex items-center justify-center border-2",
                     roundScores[roundScores.length - 1] >= 90 ? "border-primary text-primary" : "border-outline text-on-surface-variant"
                   )}
                 >
-                  {roundScores[roundScores.length - 1] >= 90 ? <Trophy size={48} /> : <RefreshCw size={48} />}
+                  {roundScores[roundScores.length - 1] >= 90 ? <Trophy size={32} /> : <RefreshCw size={32} />}
                 </motion.div>
 
-                <div className="space-y-2">
-                  <h3 className="text-5xl font-black uppercase tracking-tighter">
+                <div className="space-y-1">
+                  <h3 className="text-3xl font-black uppercase tracking-tighter">
                     {roundScores[roundScores.length - 1] >= 90 ? "Masterful!" : "Analyzed"}
                   </h3>
-                  <p className="text-on-surface-variant font-mono text-xs uppercase tracking-widest">Round {roundScores.length} Accuracy</p>
+                  <p className="text-on-surface-variant font-mono text-[10px] uppercase tracking-widest">Round {roundScores.length} Accuracy</p>
                 </div>
 
-                <div className="w-full max-w-xl">
+                <div className="w-full max-w-md">
                   <SimulationStage 
                     referenceBezier={randomTarget}
                     userBezier={userBezier}
@@ -381,7 +381,7 @@ export default function App() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="text-8xl font-black font-mono text-primary"
+                  className="text-6xl font-black font-mono text-primary"
                 >
                   {roundScores[roundScores.length - 1]}%
                 </motion.div>
@@ -392,9 +392,9 @@ export default function App() {
                   transition={{ delay: 0.6 }}
                   whileHover={{ x: 5 }}
                   onClick={nextRound}
-                  className="mt-4 px-12 py-5 bg-primary text-on-primary font-bold uppercase tracking-widest text-sm hover:brightness-110 transition-all flex items-center justify-center gap-3"
+                  className="px-10 py-4 bg-primary text-on-primary font-bold uppercase tracking-widest text-xs hover:brightness-110 transition-all flex items-center justify-center gap-3"
                 >
-                  {roundScores.length < 5 ? "Next Round" : "Final Results"} <ArrowRight size={20} />
+                  {roundScores.length < 5 ? "Next Round" : "Final Results"} <ArrowRight size={18} />
                 </motion.button>
               </div>
             </div>

@@ -176,8 +176,8 @@ export const BezierEditor: React.FC<BezierEditorProps> = ({ value, onChange, hid
         </div>
 
         {/* Axis Labels */}
-        <div className="absolute left-4 bottom-2 text-[8px] font-mono text-on-surface-variant uppercase tracking-widest z-10">Time (x)</div>
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[8px] font-mono text-on-surface-variant uppercase tracking-widest -rotate-90 z-10">Value (y)</div>
+        <div className="absolute left-4 bottom-2 text-[8px] font-mono text-on-surface-variant uppercase tracking-widest z-10 pointer-events-none">Time (x)</div>
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[8px] font-mono text-on-surface-variant uppercase tracking-widest -rotate-90 z-10 pointer-events-none">Value (y)</div>
       </div>
 
       {!hideValues && (
