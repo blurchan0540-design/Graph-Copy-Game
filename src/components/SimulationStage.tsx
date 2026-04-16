@@ -18,7 +18,11 @@ export const SimulationStage: React.FC<SimulationStageProps> = ({
   onAnimationComplete
 }) => {
   return (
-    <div className="relative w-full h-[120px] bg-surface-container border border-outline flex items-center px-10">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative w-full h-[120px] bg-surface-container border border-outline flex items-center px-10"
+    >
       <span className="absolute top-2 left-4 text-[10px] uppercase tracking-widest text-on-surface-variant font-mono">
         Reference Motion
       </span>
@@ -67,6 +71,6 @@ export const SimulationStage: React.FC<SimulationStageProps> = ({
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -100,19 +100,26 @@ export const BezierEditor: React.FC<BezierEditorProps> = ({ value, onChange }) =
             preserveAspectRatio="none"
           >
             {/* Construction Lines */}
-            <line 
+            <motion.line 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               x1="0" y1="400" 
               x2={cp1.x} y2={cp1.y} 
               stroke="#333333" strokeDasharray="4" strokeWidth="1" 
             />
-            <line 
+            <motion.line 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               x1="400" y1="0" 
               x2={cp2.x} y2={cp2.y} 
               stroke="#333333" strokeDasharray="4" strokeWidth="1" 
             />
 
             {/* The Curve */}
-            <path 
+            <motion.path 
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
               d={`M 0 400 C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, 400 0`} 
               fill="none" 
               stroke="#CCFF00" 
@@ -122,26 +129,40 @@ export const BezierEditor: React.FC<BezierEditorProps> = ({ value, onChange }) =
 
           {/* Interactive Handles */}
           {/* Handle 1 */}
-          <div 
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15 }}
             className="absolute -translate-x-1/2 -translate-y-1/2 group/handle cursor-grab active:cursor-grabbing pointer-events-auto"
             style={{ left: `${p1 * 100}%`, top: `${(1 - v1) * 100}%` }}
             onMouseDown={handleMouseDown('p1')}
           >
-            <div className="w-4 h-4 rounded-none bg-surface border-2 border-primary group-hover/handle:scale-125 transition-transform flex items-center justify-center">
+            <motion.div 
+              whileHover={{ scale: 1.2, rotate: 45 }}
+              whileTap={{ scale: 0.9, rotate: 0 }}
+              className="w-4 h-4 rounded-none bg-surface border-2 border-primary transition-colors flex items-center justify-center"
+            >
               <div className="w-1 h-1 bg-primary"></div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Handle 2 */}
-          <div 
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
             className="absolute -translate-x-1/2 -translate-y-1/2 group/handle cursor-grab active:cursor-grabbing pointer-events-auto"
             style={{ left: `${p2 * 100}%`, top: `${(1 - v2) * 100}%` }}
             onMouseDown={handleMouseDown('p2')}
           >
-            <div className="w-4 h-4 rounded-none bg-surface border-2 border-primary group-hover/handle:scale-125 transition-transform flex items-center justify-center">
+            <motion.div 
+              whileHover={{ scale: 1.2, rotate: -45 }}
+              whileTap={{ scale: 0.9, rotate: 0 }}
+              className="w-4 h-4 rounded-none bg-surface border-2 border-primary transition-colors flex items-center justify-center"
+            >
               <div className="w-1 h-1 bg-primary"></div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
 
         {/* Axis Labels */}
