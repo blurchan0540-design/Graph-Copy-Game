@@ -618,6 +618,15 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Footer License */}
+      <footer className="fixed bottom-4 left-0 right-0 pointer-events-none flex justify-center z-[100]">
+        <div className="bg-surface/80 backdrop-blur-sm px-4 py-1.5 border border-outline rounded-full shadow-sm">
+          <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-[0.2em]">
+            <span className="text-primary font-black">blurChan.</span> with Gemini Ai studio
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
