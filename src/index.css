@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Courier Prime", "Courier New", Courier, monospace;
+
+  --color-surface: #0F0F0F;
+  --color-surface-container: #1A1A1A;
+  --color-surface-container-low: #0F0F0F;
+  --color-surface-container-high: #1A1A1A;
+  --color-surface-container-highest: #1A1A1A;
+  --color-surface-bright: #262626;
+  
+  --color-primary: #CCFF00;
+  --color-primary-dim: #CCFF00;
+  --color-on-primary: #0F0F0F;
+  
+  --color-secondary: #CCFF00;
+  --color-secondary-dim: #CCFF00;
+  --color-on-secondary: #0F0F0F;
+  
+  --color-tertiary: #FFFFFF;
+  --color-on-tertiary: #0F0F0F;
+  
+  --color-outline: #333333;
+  --color-outline-variant: #333333;
+  
+  --color-on-surface: #FFFFFF;
+  --color-on-surface-variant: #666666;
+
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary;
+    letter-spacing: -0.01em;
+  }
+}
+
+.glass-panel {
+  background: #1A1A1A;
+  border: 1px solid #333333;
+}
+
+.graph-grid {
+  background-image: 
+    linear-gradient(#333333 1px, transparent 1px),
+    linear-gradient(90deg, #333333 1px, transparent 1px);
+  background-size: 40px 40px;
+}
