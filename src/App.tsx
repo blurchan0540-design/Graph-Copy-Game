@@ -135,10 +135,38 @@ export default function App() {
   };
 
   const calculateScore = () => {
-    const target = randomTarget;
-    const diff = target.reduce((acc, val, i) => acc + Math.abs(val - userBezier[i]), 0);
-    const accuracy = Math.max(0, 100 - (diff * 50));
-    return Math.round(accuracy);
+    const getBezierPoint = (t: number, p: [number, number, number, number]) => {
+      const [x1, y1, x2, y2] = p;
+      // Parametric Cubic Bezier formula: P0=(0,0), P3=(1,1)
+      const x = 3 * Math.pow(1 - t, 2) * t * x1 + 3 * (1 - t) * Math.pow(t, 2) * x2 + Math.pow(t, 3);
+      const y = 3 * Math.pow(1 - t, 2) * t * y1 + 3 * (1 - t) * Math.pow(t, 2) * y2 + Math.pow(t, 3);
+      return { x, y };
+    };
+
+    let totalDist = 0;
+    const samples = 25;
+    for (let i = 1; i <= samples; i++) {
+      const t = i / samples;
+      const ptTarget = getBezierPoint(t, randomTarget);
+      const ptUser = getBezierPoint(t, userBezier);
+      
+      // Calculate Euclidean distance between points at the same parametric step
+      const dist = Math.sqrt(
+        Math.pow(ptTarget.x - ptUser.x, 2) + 
+        Math.pow(ptTarget.y - ptUser.y, 2)
+      );
+      totalDist += dist;
+    }
+
+    const avgDist = totalDist / samples;
+    
+    // Scoring logic: use exponential decay for a more natural feel
+    // avgDist of 0.0 = 100%
+    // avgDist of 0.1 = ~60%
+    // avgDist of 0.2 = ~36%
+    const score = Math.round(100 * Math.exp(-avgDist * 5));
+    
+    return Math.max(0, Math.min(100, score));
   };
 
   const handleSubmit = () => {
