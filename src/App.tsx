@@ -13,7 +13,7 @@ import { SimulationStage } from '@/src/components/SimulationStage';
 
 export default function App() {
   const [gameState, setGameState] = useState<'start' | 'observe' | 'play' | 'result' | 'final'>('start');
-  const [gameMode, setGameMode] = useState<'easy' | 'hard' | 'insane'>('easy');
+  const [gameMode, setGameMode] = useState<'easy' | 'hard' | 'insane' | 'tournament'>('easy');
   const [timeLimit, setTimeLimit] = useState<15 | 30 | 60>(30);
   const [timeLeft, setTimeLeft] = useState(30);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
@@ -39,23 +39,56 @@ export default function App() {
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (gameState === 'play' && gameMode === 'insane' && timeLeft > 0) {
+    const isTimerActive = (gameMode === 'insane' && gameState === 'play') || 
+                         (gameMode === 'tournament' && (gameState === 'observe' || gameState === 'play' || gameState === 'result'));
+
+    if (isTimerActive && timeLeft > 0) {
       timer = setInterval(() => {
         setTimeLeft(prev => prev - 1);
       }, 1000);
-    } else if (timeLeft === 0 && gameState === 'play' && gameMode === 'insane') {
-      setGameState('final');
-      setIsPlayingReference(false);
-      setIsPlayingUser(false);
+    } else if (timeLeft === 0 && isTimerActive) {
+      if (gameMode === 'tournament') {
+        setGameState('final');
+        setIsPlayingReference(false);
+        setIsPlayingUser(false);
+      } else {
+        // Auto-submit on timeout for insane mode
+        handleSubmit();
+      }
     }
     return () => clearInterval(timer);
   }, [gameState, gameMode, timeLeft]);
 
-  const startGame = (mode: 'easy' | 'hard' | 'insane', limit?: 15 | 30 | 60) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState === 'play') {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          setUserBezier([0.25, 0.1, 0.25, 1]);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSubmit();
+        }
+      } else if (gameState === 'result') {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          nextRound();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState, userBezier, randomTarget, roundScores]);
+
+  const startGame = (mode: 'easy' | 'hard' | 'insane' | 'tournament', limit?: 15 | 30 | 60) => {
     setGameMode(mode);
     if (mode === 'insane' && limit) {
       setTimeLimit(limit);
       setTimeLeft(limit);
+    } else if (mode === 'tournament') {
+      setTimeLimit(15);
+      setTimeLeft(15);
     }
     setGameState('observe');
     setObservationLoops(0);
@@ -77,6 +110,9 @@ export default function App() {
         } else {
           // Finished loops, move to play phase
           setGameState('play');
+          if (gameMode === 'insane') {
+            setTimeLeft(timeLimit);
+          }
           setIsPlayingUser(true); // Start live preview
           return 0; // Reset for next round
         }
@@ -169,7 +205,7 @@ export default function App() {
               </motion.div>
               
               <div className="flex flex-col gap-8 w-full max-w-4xl">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -207,7 +243,7 @@ export default function App() {
                       </div>
                       <div className="text-center">
                         <h3 className="font-black uppercase tracking-tight">Insane Mode</h3>
-                        <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Time Pressure</p>
+                        <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Time Per Round</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -222,6 +258,22 @@ export default function App() {
                       ))}
                     </div>
                   </div>
+
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => startGame('tournament')}
+                    className="flex flex-col items-center gap-4 p-6 border-2 border-primary bg-primary/5 hover:bg-primary/10 transition-colors group relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-1 bg-primary text-on-primary text-[8px] font-bold uppercase tracking-widest">Hot</div>
+                    <div className="w-12 h-12 flex items-center justify-center border border-primary text-primary">
+                      <Trophy size={24} />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="font-black uppercase tracking-tight">Tournament</h3>
+                      <p className="text-[10px] font-mono text-primary uppercase mt-1">15s Global Limit</p>
+                    </div>
+                  </motion.button>
                 </div>
               </div>
             </div>
@@ -305,7 +357,7 @@ export default function App() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Match Phase</span>
                 </div>
                 <div className="font-mono text-[10px] text-on-surface-variant flex items-center gap-4">
-                  {gameMode === 'insane' && (
+                  {(gameMode === 'insane' || gameMode === 'tournament') && (
                     <div className={cn(
                       "flex items-center gap-2 px-4 py-2 border-2 transition-all duration-300",
                       timeLeft <= 5 
