@@ -8,6 +8,7 @@ interface SimulationStageProps {
   isPlayingReference: boolean;
   isPlayingUser: boolean;
   onAnimationComplete: () => void;
+  duration?: number;
 }
 
 export const SimulationStage: React.FC<SimulationStageProps> = ({
@@ -15,7 +16,8 @@ export const SimulationStage: React.FC<SimulationStageProps> = ({
   userBezier,
   isPlayingReference,
   isPlayingUser,
-  onAnimationComplete
+  onAnimationComplete,
+  duration = 1.5
 }) => {
   return (
     <motion.div 
@@ -24,7 +26,7 @@ export const SimulationStage: React.FC<SimulationStageProps> = ({
       className="relative w-full h-[120px] bg-surface-container border border-outline flex items-center px-10"
     >
       <span className="absolute top-2 left-4 text-[10px] uppercase tracking-widest text-on-surface-variant font-mono">
-        Reference Motion
+        {isPlayingReference ? "Reference Motion" : "Live Preview"}
       </span>
       
       <div className="relative w-full h-0.5 bg-outline">
@@ -34,7 +36,7 @@ export const SimulationStage: React.FC<SimulationStageProps> = ({
           initial={{ left: "0%" }}
           animate={isPlayingReference ? { left: "100%" } : { left: "0%" }}
           transition={{ 
-            duration: 1.5, 
+            duration: duration, 
             ease: referenceBezier
           }}
           onAnimationComplete={() => {
@@ -49,7 +51,7 @@ export const SimulationStage: React.FC<SimulationStageProps> = ({
           initial={{ left: "0%" }}
           animate={isPlayingUser ? { left: "100%" } : { left: "0%" }}
           transition={{ 
-            duration: 1.5, 
+            duration: duration, 
             ease: userBezier
           }}
           onAnimationComplete={() => {

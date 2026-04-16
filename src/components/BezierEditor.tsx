@@ -7,9 +7,10 @@ import { Point } from '@/src/types';
 interface BezierEditorProps {
   value: [number, number, number, number];
   onChange: (value: [number, number, number, number]) => void;
+  hideValues?: boolean;
 }
 
-export const BezierEditor: React.FC<BezierEditorProps> = ({ value, onChange }) => {
+export const BezierEditor: React.FC<BezierEditorProps> = ({ value, onChange, hideValues }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState<'p1' | 'p2' | null>(null);
 
@@ -170,19 +171,21 @@ export const BezierEditor: React.FC<BezierEditorProps> = ({ value, onChange }) =
         <div className="absolute left-4 top-4 text-[10px] font-mono text-on-surface-variant uppercase tracking-widest -rotate-90 origin-left translate-x-2">Value (y)</div>
       </div>
 
-      <div className="mt-8 flex gap-4 items-center">
-        <div className="bg-surface-container px-6 py-3 border border-outline">
-          <code className="text-primary font-mono text-sm">
-            cubic-bezier({value.map(v => v.toFixed(2)).join(', ')})
-          </code>
+      {!hideValues && (
+        <div className="mt-8 flex gap-4 items-center">
+          <div className="bg-surface-container px-6 py-3 border border-outline">
+            <code className="text-primary font-mono text-sm">
+              cubic-bezier({value.map(v => v.toFixed(2)).join(', ')})
+            </code>
+          </div>
+          <button 
+            onClick={() => navigator.clipboard.writeText(`cubic-bezier(${value.join(', ')})`)}
+            className="text-on-surface-variant hover:text-primary transition-colors"
+          >
+            <Copy size={18} />
+          </button>
         </div>
-        <button 
-          onClick={() => navigator.clipboard.writeText(`cubic-bezier(${value.join(', ')})`)}
-          className="text-on-surface-variant hover:text-primary transition-colors"
-        >
-          <Copy size={18} />
-        </button>
-      </div>
+      )}
     </div>
   );
 };

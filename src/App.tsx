@@ -13,6 +13,7 @@ import { SimulationStage } from '@/src/components/SimulationStage';
 
 export default function App() {
   const [gameState, setGameState] = useState<'start' | 'observe' | 'play' | 'result' | 'final'>('start');
+  const [gameMode, setGameMode] = useState<'easy' | 'hard'>('easy');
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [userBezier, setUserBezier] = useState<[number, number, number, number]>([0.25, 0.1, 0.25, 1]);
   const [isPlayingReference, setIsPlayingReference] = useState(false);
@@ -34,7 +35,8 @@ export default function App() {
 
   const [randomTarget, setRandomTarget] = useState<[number, number, number, number]>(LEVELS[0].targetBezier);
 
-  const startGame = () => {
+  const startGame = (mode: 'easy' | 'hard') => {
+    setGameMode(mode);
     setGameState('observe');
     setObservationLoops(0);
     setRandomTarget(generateRandomBezier());
@@ -47,16 +49,21 @@ export default function App() {
       
       setObservationLoops(prev => {
         const nextLoop = prev + 1;
-        if (nextLoop < 2) {
+        const maxLoops = gameMode === 'hard' ? 1 : 2;
+        if (nextLoop < maxLoops) {
           // Play second loop after a short delay
           setTimeout(() => setIsPlayingReference(true), 100);
           return nextLoop;
         } else {
-          // Finished 2 loops, move to play phase
+          // Finished loops, move to play phase
           setGameState('play');
+          setIsPlayingUser(true); // Start live preview
           return 0; // Reset for next round
         }
       });
+    } else if (gameState === 'play') {
+      setIsPlayingUser(false);
+      setTimeout(() => setIsPlayingUser(true), 100);
     } else {
       setIsPlayingReference(false);
       setIsPlayingUser(false);
@@ -126,17 +133,31 @@ export default function App() {
                 </p>
               </motion.div>
               
+            <div className="flex flex-col md:flex-row gap-6">
               <motion.button 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={startGame}
-                className="px-16 py-6 bg-primary text-on-primary font-bold uppercase tracking-[0.3em] text-xl hover:brightness-110 transition-all"
+                onClick={() => startGame('easy')}
+                className="px-12 py-5 border-2 border-primary text-primary font-bold uppercase tracking-[0.2em] text-lg hover:bg-primary hover:text-on-primary transition-all"
               >
-                Initialize
+                Easy Mode
               </motion.button>
+
+              <motion.button 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => startGame('hard')}
+                className="px-12 py-5 bg-primary text-on-primary font-bold uppercase tracking-[0.2em] text-lg hover:brightness-110 transition-all"
+              >
+                Hard Mode
+              </motion.button>
+            </div>
             </div>
           </motion.div>
         )}
@@ -157,7 +178,7 @@ export default function App() {
                   <span className="text-xs font-black uppercase tracking-widest">Observation Phase</span>
                 </div>
                 <div className="font-mono text-xs text-on-surface-variant">
-                  LOOP {observationLoops + 1} / 2
+                  LOOP {observationLoops + 1} / {gameMode === 'hard' ? 1 : 2}
                 </div>
               </header>
               
@@ -174,23 +195,28 @@ export default function App() {
                     isPlayingReference={isPlayingReference}
                     isPlayingUser={false}
                     onAnimationComplete={handleAnimationComplete}
+                    duration={1}
                   />
                 </div>
 
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="bg-surface-container px-6 py-3 border border-outline"
-                >
-                  <code className="text-primary font-mono text-sm">
-                    REF: cubic-bezier({randomTarget.map(v => v.toFixed(2)).join(', ')})
-                  </code>
-                </motion.div>
+                {gameMode === 'easy' && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-surface-container px-6 py-3 border border-outline"
+                  >
+                    <code className="text-primary font-mono text-sm">
+                      REF: cubic-bezier({randomTarget.map(v => v.toFixed(2)).join(', ')})
+                    </code>
+                  </motion.div>
+                )}
 
                 <div className="flex gap-2">
                   <div className={cn("w-12 h-1 transition-colors duration-500", observationLoops >= 0 ? "bg-primary" : "bg-outline")} />
-                  <div className={cn("w-12 h-1 transition-colors duration-500", observationLoops >= 1 ? "bg-primary" : "bg-outline")} />
+                  {gameMode === 'easy' && (
+                    <div className={cn("w-12 h-1 transition-colors duration-500", observationLoops >= 1 ? "bg-primary" : "bg-outline")} />
+                  )}
                 </div>
               </div>
             </div>
@@ -223,9 +249,24 @@ export default function App() {
                   <p className="text-on-surface-variant font-mono text-[9px] uppercase tracking-widest">Adjust control points to match the motion</p>
                 </div>
 
+                <div className="w-full">
+                  <SimulationStage 
+                    referenceBezier={randomTarget}
+                    userBezier={userBezier}
+                    isPlayingReference={false}
+                    isPlayingUser={isPlayingUser}
+                    onAnimationComplete={handleAnimationComplete}
+                    duration={1}
+                  />
+                </div>
+
                 <div className="flex-grow flex items-center justify-center min-h-0">
                   <div className="w-full max-w-3xl">
-                    <BezierEditor value={userBezier} onChange={setUserBezier} />
+                    <BezierEditor 
+                      value={userBezier} 
+                      onChange={setUserBezier} 
+                      hideValues={gameMode === 'hard'}
+                    />
                   </div>
                 </div>
               </div>
