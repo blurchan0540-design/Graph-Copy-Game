@@ -5,14 +5,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Eye, ArrowRight, CheckCircle2, Circle, Settings, Activity, Info, RefreshCw, Trophy, Spline, Timer, Zap } from 'lucide-react';
+import { Eye, ArrowRight, Circle, Settings, Activity, Info, RefreshCw, Trophy, Spline, Timer, Zap } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { LEVELS, Level } from '@/src/types';
 import { BezierEditor } from '@/src/components/BezierEditor';
 import { SimulationStage } from '@/src/components/SimulationStage';
+import { HelpPage } from '@/src/components/HelpPage';
+import { translations, Lang } from '@/src/translations';
 
 export default function App() {
-  const [gameState, setGameState] = useState<'start' | 'observe' | 'play' | 'result' | 'final'>('start');
+  const [lang, setLang] = useState<Lang>('en');
+  const tx = translations[lang];
+
+  const [gameState, setGameState] = useState<'start' | 'observe' | 'play' | 'result' | 'final' | 'help'>('start');
   const [gameMode, setGameMode] = useState<'easy' | 'hard' | 'insane' | 'tournament'>('easy');
   const [timeLimit, setTimeLimit] = useState<15 | 30 | 60>(30);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -26,12 +31,10 @@ export default function App() {
   const currentLevel = LEVELS[currentLevelIndex];
 
   const generateRandomBezier = (): [number, number, number, number] => {
-    // Generate values between -0.5 and 1.5 for Y to allow for overshoot/anticipation
-    // X must be between 0 and 1
     const x1 = Math.round(Math.random() * 100) / 100;
-    const y1 = Math.round((Math.random() * 2 - 0.5) * 100) / 100;
+    const y1 = Math.round((Math.random() * 1.2 - 0.1) * 100) / 100; // -0.1 to 1.1
     const x2 = Math.round(Math.random() * 100) / 100;
-    const y2 = Math.round((Math.random() * 2 - 0.5) * 100) / 100;
+    const y2 = Math.round((Math.random() * 1.2 - 0.1) * 100) / 100;
     return [x1, y1, x2, y2];
   };
 
@@ -173,9 +176,27 @@ export default function App() {
     const finalScore = calculateScore();
     const newScores = [...roundScores, finalScore];
     setRoundScores(newScores);
-    setGameState('result');
-    setIsPlayingReference(true);
-    setIsPlayingUser(true);
+
+    if (gameMode === 'tournament') {
+      setIsPlayingReference(false);
+      setIsPlayingUser(false);
+      if (newScores.length < 5) {
+        const nextIdx = (currentLevelIndex + 1) % LEVELS.length;
+        setCurrentLevelIndex(nextIdx);
+        setRandomTarget(generateRandomBezier());
+        setUserBezier([0.25, 0.1, 0.25, 1]);
+        setGameState('observe');
+        setObservationLoops(0);
+        setTimeLeft(15);
+        setIsPlayingReference(true);
+      } else {
+        setGameState('final');
+      }
+    } else {
+      setGameState('result');
+      setIsPlayingReference(true);
+      setIsPlayingUser(true);
+    }
   };
 
   const nextRound = () => {
@@ -205,453 +226,554 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen bg-surface overflow-hidden">
+    <div className="h-screen motion-bg overflow-hidden relative">
+      <div className="orb-purple absolute -top-20 -left-20 opacity-60 pointer-events-none" />
+      <div className="orb-blue absolute -bottom-20 -right-10 opacity-50 pointer-events-none" />
+
+      {/* ── Language toggle (always visible) ── */}
+      <motion.button
+        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+        onClick={() => setLang(l => l === 'en' ? 'th' : 'en')}
+        className="fixed top-4 right-4 z-[200] px-3 py-1.5 rounded-lg font-mono text-base font-bold uppercase tracking-widest transition-all"
+        style={{ background: 'rgba(11,11,30,0.85)', border: '1px solid rgba(176,110,255,0.35)', color: '#b06eff', backdropFilter: 'blur(8px)' }}
+      >
+        {tx.otherLang}
+      </motion.button>
+
       <AnimatePresence mode="wait">
+
+        {/* ── HELP ── */}
+        {gameState === 'help' && (
+          <HelpPage key="help" tx={tx} onBack={() => setGameState('start')} />
+        )}
+
+        {/* ── START ── */}
         {gameState === 'start' && (
-          <motion.div 
+          <motion.div
             key="start"
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, scale: 1.04 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="h-full flex items-center justify-center p-4 md:p-8"
           >
-            <div className="w-full max-w-5xl h-full max-h-[85vh] flex flex-col items-center justify-center border border-outline bg-surface text-on-surface font-body shadow-2xl text-center p-8 md:p-12 gap-8 overflow-y-auto">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex flex-col items-center gap-2"
+            <div className="w-full max-w-5xl h-full max-h-[88vh] flex flex-col items-center justify-center panel-glow rounded-2xl text-on-surface text-center p-8 md:p-12 gap-8 overflow-y-auto relative">
+              <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none opacity-30">
+                <div className="graph-grid w-full h-full" />
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col items-center gap-3 relative z-10"
               >
-                <Spline className="text-primary" size={60} />
-                <h1 className="text-6xl font-black uppercase tracking-tighter">
-                  Graph Copy
+                <motion.div className="float-anim">
+                  <svg width="80" height="80" viewBox="0 0 100 100" fill="none">
+                    {/* Axes */}
+                    <line x1="12" y1="14" x2="12" y2="88" stroke="rgba(96,165,250,0.3)" strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="12" y1="88" x2="88" y2="88" stroke="rgba(96,165,250,0.3)" strokeWidth="1.5" strokeLinecap="round"/>
+                    {/* Mid grid */}
+                    <line x1="12" y1="51" x2="88" y2="51" stroke="rgba(42,42,90,0.6)" strokeWidth="1" strokeDasharray="3 3"/>
+                    <line x1="50" y1="14" x2="50" y2="88" stroke="rgba(42,42,90,0.6)" strokeWidth="1" strokeDasharray="3 3"/>
+                    {/* Glow layer */}
+                    <motion.path
+                      d="M 12 88 C 42 88, 58 14, 88 14"
+                      animate={{ d: [
+                        "M 12 88 C 42 88, 58 14, 88 14",
+                        "M 12 88 C 12 14, 88 88, 88 14",
+                        "M 12 88 C 12 88, 88 14, 88 14",
+                        "M 12 88 C 50 88, 50 14, 88 14",
+                        "M 12 88 C 12 0, 88 102, 88 14",
+                        "M 12 88 C 42 88, 58 14, 88 14",
+                      ]}}
+                      transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', times: [0, 0.2, 0.4, 0.6, 0.8, 1] }}
+                      stroke="rgba(176,110,255,0.35)"
+                      strokeWidth="9"
+                      strokeLinecap="round"
+                      style={{ filter: 'blur(5px)' }}
+                    />
+                    {/* Main curve */}
+                    <motion.path
+                      d="M 12 88 C 42 88, 58 14, 88 14"
+                      animate={{ d: [
+                        "M 12 88 C 42 88, 58 14, 88 14",
+                        "M 12 88 C 12 14, 88 88, 88 14",
+                        "M 12 88 C 12 88, 88 14, 88 14",
+                        "M 12 88 C 50 88, 50 14, 88 14",
+                        "M 12 88 C 12 0, 88 102, 88 14",
+                        "M 12 88 C 42 88, 58 14, 88 14",
+                      ]}}
+                      transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', times: [0, 0.2, 0.4, 0.6, 0.8, 1] }}
+                      stroke="#b06eff"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    {/* Anchor dots */}
+                    <circle cx="12" cy="88" r="3.5" fill="rgba(96,165,250,0.8)"/>
+                    <circle cx="88" cy="14" r="3.5" fill="rgba(176,110,255,0.8)"/>
+                  </svg>
+                </motion.div>
+                <h1 className="text-6xl font-black uppercase tracking-tighter text-primary flex">
+                  {Array.from(tx.gameTitle).map((char, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ opacity: 1, x: -7 }}
+                      animate={{ x: 7 }}
+                      transition={{
+                        duration: 1.4,
+                        delay: i * 0.1,
+                        repeat: Infinity,
+                        repeatType: 'mirror',
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      {char === ' ' ? ' ' : char}
+                    </motion.span>
+                  ))}
                 </h1>
-                <p className="text-on-surface-variant font-mono text-xs uppercase tracking-widest">
-                  The Easing Lab / Kinetic Training
-                </p>
+                <p className="text-on-surface-variant font-mono text-base uppercase tracking-widest">{tx.gameSubtitle}</p>
               </motion.div>
-              
-              <div className="flex flex-col gap-8 w-full max-w-4xl">
+
+              <div className="flex flex-col gap-8 w-full max-w-4xl relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  {/* Easy */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+                    whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
                     onClick={() => startGame('easy')}
-                    className="flex flex-col items-center gap-4 p-6 border border-outline hover:border-primary transition-colors group"
+                    className="glass-card flex flex-col items-center gap-4 p-6 rounded-xl transition-all"
                   >
-                    <div className="w-12 h-12 flex items-center justify-center border border-outline group-hover:border-primary">
-                      <Circle className="text-on-surface-variant group-hover:text-primary" size={24} />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      style={{ background: 'rgba(176,110,255,0.1)', border: '1px solid rgba(176,110,255,0.3)' }}>
+                      <Circle className="text-primary" size={22} />
                     </div>
                     <div className="text-center">
-                      <h3 className="font-black uppercase tracking-tight">Easy Mode</h3>
-                      <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Standard Training</p>
+                      <h3 className="font-bold uppercase tracking-tight text-on-surface">{tx.easyMode}</h3>
+                      <p className="text-base font-mono text-on-surface-variant uppercase mt-1">{tx.easyModeDesc}</p>
                     </div>
                   </motion.button>
 
-                  <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  {/* Hard */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}
+                    whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
                     onClick={() => startGame('hard')}
-                    className="flex flex-col items-center gap-4 p-6 border border-outline hover:border-primary transition-colors group"
+                    className="glass-card flex flex-col items-center gap-4 p-6 rounded-xl transition-all"
                   >
-                    <div className="w-12 h-12 flex items-center justify-center border border-outline group-hover:border-primary">
-                      <Zap className="text-on-surface-variant group-hover:text-primary" size={24} />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)' }}>
+                      <Zap className="text-secondary" size={22} />
                     </div>
                     <div className="text-center">
-                      <h3 className="font-black uppercase tracking-tight">Hard Mode</h3>
-                      <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Hidden Coordinates</p>
+                      <h3 className="font-bold uppercase tracking-tight text-on-surface">{tx.hardMode}</h3>
+                      <p className="text-base font-mono text-on-surface-variant uppercase mt-1">{tx.hardModeDesc}</p>
                     </div>
                   </motion.button>
 
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-col items-center gap-4 p-6 border border-outline bg-surface-container/30">
-                      <div className="w-12 h-12 flex items-center justify-center border border-outline text-primary">
-                        <Timer size={24} />
+                  {/* Insane */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.39 }}
+                    className="flex flex-col gap-2"
+                  >
+                    <div className="glass-card flex flex-col items-center gap-4 p-6 rounded-xl">
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center"
+                        style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.3)' }}>
+                        <Timer size={22} style={{ color: '#22d3ee' }} />
                       </div>
                       <div className="text-center">
-                        <h3 className="font-black uppercase tracking-tight">Insane Mode</h3>
-                        <p className="text-[10px] font-mono text-on-surface-variant uppercase mt-1">Time Per Round</p>
+                        <h3 className="font-bold uppercase tracking-tight text-on-surface">{tx.insaneMode}</h3>
+                        <p className="text-base font-mono text-on-surface-variant uppercase mt-1">{tx.insaneModeDesc}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       {[15, 30, 60].map((limit) => (
-                        <button
+                        <motion.button
                           key={limit}
+                          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                           onClick={() => startGame('insane', limit as 15 | 30 | 60)}
-                          className="flex-1 py-2 border border-outline hover:border-primary font-mono text-[10px] uppercase tracking-widest transition-colors"
+                          className="flex-1 py-2 rounded-md font-mono text-base uppercase tracking-widest transition-all"
+                          style={{ background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.25)', color: '#22d3ee' }}
                         >
                           {limit}s
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
-                  </div>
+                  </motion.div>
 
-                  <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  {/* Tournament */}
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.46 }}
+                    whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
                     onClick={() => startGame('tournament')}
-                    className="flex flex-col items-center gap-4 p-6 border-2 border-primary bg-primary/5 hover:bg-primary/10 transition-colors group relative overflow-hidden"
+                    className="flex flex-col items-center gap-4 p-6 rounded-xl transition-all relative overflow-hidden"
+                    style={{ background: 'rgba(176,110,255,0.08)', border: '1px solid rgba(176,110,255,0.5)' }}
                   >
-                    <div className="absolute top-0 right-0 p-1 bg-primary text-on-primary text-[8px] font-bold uppercase tracking-widest">Hot</div>
-                    <div className="w-12 h-12 flex items-center justify-center border border-primary text-primary">
-                      <Trophy size={24} />
+                    <div className="absolute top-0 right-0 px-2 py-0.5 text-base font-bold uppercase tracking-widest rounded-bl-lg"
+                      style={{ background: 'linear-gradient(135deg, #b06eff, #60a5fa)', color: '#04040f' }}>{tx.hot}</div>
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      style={{ background: 'rgba(176,110,255,0.15)', border: '1px solid rgba(176,110,255,0.5)' }}>
+                      <Trophy className="text-primary" size={22} />
                     </div>
                     <div className="text-center">
-                      <h3 className="font-black uppercase tracking-tight">Tournament</h3>
-                      <p className="text-[10px] font-mono text-primary uppercase mt-1">15s Global Limit</p>
+                      <h3 className="font-bold uppercase tracking-tight text-primary">{tx.tournament}</h3>
+                      <p className="text-base font-mono text-primary uppercase mt-1">{tx.tournamentDesc}</p>
                     </div>
                   </motion.button>
                 </div>
 
-                {/* Guide Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left border-t border-outline pt-8">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Info size={16} />
-                      <h4 className="text-xs font-black uppercase tracking-widest">How to Play</h4>
-                    </div>
-                    <ul className="space-y-2 text-[10px] text-on-surface-variant font-mono uppercase tracking-wider leading-relaxed">
-                      <li className="flex gap-3">
-                        <span className="text-primary font-black">01</span>
-                        <span>Observe the Reference Motion and memorize its acceleration pattern.</span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="text-primary font-black">02</span>
-                        <span>Adjust the Bezier handles to replicate the motion curve.</span>
-                      </li>
-                      <li className="flex gap-3">
-                        <span className="text-primary font-black">03</span>
-                        <span>Apply to compare your motion with the original and see your accuracy score.</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Settings size={16} />
-                      <h4 className="text-xs font-black uppercase tracking-widest">Keyboard Shortcuts</h4>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between p-3 border border-outline bg-surface-container/20">
-                        <span className="text-[9px] font-mono text-on-surface-variant uppercase">Reset Graph</span>
-                        <kbd className="px-2 py-1 bg-surface-container border border-outline rounded text-[9px] font-black">SPACE</kbd>
+                {/* Guide + Help button */}
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+                  className="flex flex-col gap-6 text-left pt-6"
+                  style={{ borderTop: '1px solid rgba(42,42,90,0.8)' }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-primary">
+                        <Info size={14} />
+                        <h4 className="text-base font-bold uppercase tracking-widest">{tx.howToPlay}</h4>
                       </div>
-                      <div className="flex items-center justify-between p-3 border border-outline bg-surface-container/20">
-                        <span className="text-[9px] font-mono text-on-surface-variant uppercase">Apply / Next</span>
-                        <kbd className="px-2 py-1 bg-surface-container border border-outline rounded text-[9px] font-black">ENTER</kbd>
+                      <ul className="space-y-2 text-base text-on-surface-variant font-mono uppercase tracking-wider leading-relaxed">
+                        {[tx.step1, tx.step2, tx.step3].map((txt, i) => (
+                          <li key={i} className="flex gap-3">
+                            <span className="text-primary font-bold">0{i + 1}</span>
+                            <span>{txt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-secondary">
+                        <Settings size={14} />
+                        <h4 className="text-base font-bold uppercase tracking-widest">{tx.keyboardShortcuts}</h4>
                       </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([[tx.resetGraph, 'SPACE'], [tx.applyNext, 'ENTER']] as [string, string][]).map(([label, key]) => (
+                          <div key={key} className="flex items-center justify-between p-3 rounded-lg"
+                            style={{ background: 'rgba(11,11,30,0.6)', border: '1px solid rgba(42,42,90,0.6)' }}>
+                            <span className="text-sm font-mono text-on-surface-variant uppercase">{label}</span>
+                            <kbd className="px-2 py-1 rounded text-sm font-bold"
+                              style={{ background: 'rgba(176,110,255,0.12)', border: '1px solid rgba(176,110,255,0.3)', color: '#b06eff' }}>{key}</kbd>
+                          </div>
+                        ))}
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => setGameState('help')}
+                        className="w-full py-2.5 rounded-lg font-mono text-base font-bold uppercase tracking-widest transition-all"
+                        style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa' }}
+                      >
+                        {tx.helpBtn} →
+                      </motion.button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
           </motion.div>
         )}
 
+        {/* ── OBSERVE ── */}
         {gameState === 'observe' && (
-          <motion.div 
+          <motion.div
             key="observe"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.4 }}
+            initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="h-full flex items-center justify-center p-4 md:p-8"
           >
-            <div className="w-full max-w-5xl h-full max-h-[85vh] flex flex-col border border-outline bg-surface text-on-surface font-body shadow-2xl overflow-hidden">
-              <header className="h-16 px-8 flex items-center justify-between border-b border-outline bg-surface-container">
+            <div className="w-full max-w-5xl h-full max-h-[85vh] flex flex-col panel-glow rounded-2xl overflow-hidden">
+              <header className="h-16 px-8 flex items-center justify-between"
+                style={{ borderBottom: '1px solid rgba(42,42,90,0.8)', background: 'rgba(11,11,30,0.7)' }}>
                 <div className="flex items-center gap-3">
-                  <Eye className="text-primary" size={18} />
-                  <span className="text-xs font-black uppercase tracking-widest">Observation Phase</span>
+                  <Eye className="text-primary" size={16} />
+                  <span className="text-base font-bold uppercase tracking-widest text-on-surface">{tx.observationPhase}</span>
                 </div>
-                <div className="font-mono text-xs text-on-surface-variant">
-                  LOOP {observationLoops + 1} / {gameMode === 'hard' ? 1 : 2}
+                <div className="font-mono text-base text-on-surface-variant px-3 py-1 rounded-md"
+                  style={{ background: 'rgba(176,110,255,0.08)', border: '1px solid rgba(176,110,255,0.2)' }}>
+                  {tx.loopLabel(observationLoops + 1, gameMode === 'hard' ? 1 : 2)}
                 </div>
               </header>
-              
-              <div className="flex-grow p-20 flex flex-col items-center justify-center gap-12">
-                <div className="text-center space-y-4">
-                  <h2 className="text-4xl font-black uppercase tracking-tighter">Memorize the Motion</h2>
-                  <p className="text-on-surface-variant font-mono text-xs uppercase tracking-widest">Watch the kinetic behavior carefully</p>
-                </div>
+
+              <div className="flex-grow p-16 flex flex-col items-center justify-center gap-10">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">
+                  <h2 className="text-4xl font-black uppercase tracking-tighter text-primary">{tx.memorizeMotion}</h2>
+                  <p className="text-on-surface-variant font-mono text-base uppercase tracking-widest">{tx.memorizeDesc}</p>
+                </motion.div>
 
                 <div className="w-full max-w-2xl">
-                  <SimulationStage 
-                    referenceBezier={randomTarget}
-                    userBezier={userBezier}
-                    isPlayingReference={isPlayingReference}
-                    isPlayingUser={false}
-                    onAnimationComplete={handleAnimationComplete}
-                    duration={1}
+                  <SimulationStage
+                    referenceBezier={randomTarget} userBezier={userBezier}
+                    isPlayingReference={isPlayingReference} isPlayingUser={false}
+                    onAnimationComplete={handleAnimationComplete} duration={1} tx={tx}
                   />
                 </div>
 
                 {gameMode === 'easy' && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className="bg-surface-container px-6 py-3 border border-outline"
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                    className="px-5 py-2.5 rounded-lg relative overflow-hidden shimmer-line"
+                    style={{ background: 'rgba(176,110,255,0.08)', border: '1px solid rgba(176,110,255,0.3)' }}
                   >
-                    <code className="text-primary font-mono text-sm">
-                      REF: cubic-bezier({randomTarget.map(v => v.toFixed(2)).join(', ')})
+                    <code className="text-primary font-mono text-base relative z-10">
+                      {tx.ref}: cubic-bezier({randomTarget.map(v => v.toFixed(2)).join(', ')})
                     </code>
                   </motion.div>
                 )}
 
-                <div className="flex gap-2">
-                  <div className={cn("w-12 h-1 transition-colors duration-500", observationLoops >= 0 ? "bg-primary" : "bg-outline")} />
-                  {gameMode === 'easy' && (
-                    <div className={cn("w-12 h-1 transition-colors duration-500", observationLoops >= 1 ? "bg-primary" : "bg-outline")} />
-                  )}
+                <div className="flex gap-3">
+                  {(gameMode === 'easy' ? [0, 1] : [0]).map(idx => (
+                    <motion.div key={idx} className="w-14 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(42,42,90,0.6)' }}>
+                      <motion.div
+                        className="h-full rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: observationLoops > idx ? '100%' : observationLoops === idx ? '50%' : '0%' }}
+                        transition={{ duration: 0.4 }}
+                        style={{ background: 'linear-gradient(90deg, #7c3aed, #b06eff)' }}
+                      />
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             </div>
           </motion.div>
         )}
 
+        {/* ── PLAY ── */}
         {gameState === 'play' && (
-          <motion.div 
+          <motion.div
             key="play"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
+            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="h-full flex items-center justify-center p-4 md:p-6"
           >
-            <div className="w-full max-w-6xl h-full max-h-[90vh] flex flex-col border border-outline bg-surface text-on-surface font-body shadow-2xl overflow-hidden">
-              <header className="h-14 px-6 flex items-center justify-between border-b border-outline bg-surface-container">
+            <div className="w-full max-w-6xl h-full max-h-[90vh] flex flex-col panel-glow rounded-2xl overflow-hidden">
+              <header className="h-14 px-6 flex items-center justify-between"
+                style={{ borderBottom: '1px solid rgba(42,42,90,0.8)', background: 'rgba(11,11,30,0.7)' }}>
                 <div className="flex items-center gap-3">
-                  <Spline className="text-primary" size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Match Phase</span>
+                  <Spline className="text-primary" size={15} />
+                  <span className="text-base font-bold uppercase tracking-widest text-on-surface">{tx.matchPhase}</span>
                 </div>
-                <div className="font-mono text-[10px] text-on-surface-variant flex items-center gap-4">
+                <div className="font-mono text-base text-on-surface-variant flex items-center gap-4">
                   {(gameMode === 'insane' || gameMode === 'tournament') && (
-                    <div className={cn(
-                      "flex items-center gap-2 px-4 py-2 border-2 transition-all duration-300",
-                      timeLeft <= 5 
-                        ? "border-primary bg-primary text-on-primary scale-125 shadow-[0_0_25px_rgba(204,255,0,0.6)] animate-pulse z-50" 
-                        : "border-outline bg-surface-container"
-                    )}>
-                      <Timer size={14} className={cn(timeLeft <= 5 && "animate-spin")} />
-                      <span className="text-sm font-black tracking-tighter">{timeLeft}S</span>
-                    </div>
+                    <motion.div
+                      animate={timeLeft <= 5 ? { scale: [1, 1.15, 1] } : {}}
+                      transition={{ repeat: Infinity, duration: 0.6 }}
+                      className="flex items-center gap-2 px-4 py-1.5 rounded-md"
+                      style={timeLeft <= 5
+                        ? { background: 'rgba(176,110,255,0.25)', border: '2px solid #b06eff', color: '#e0c4ff' }
+                        : { background: 'rgba(11,11,30,0.6)', border: '1px solid rgba(42,42,90,0.8)' }}
+                    >
+                      <Timer size={13} className={cn(timeLeft <= 5 && "animate-spin")} />
+                      <span className="text-base font-bold tracking-tighter">{timeLeft}S</span>
+                    </motion.div>
                   )}
-                  <span className="bg-surface-container px-3 py-1 border border-outline">ROUND {roundScores.length + 1} / 5</span>
+                  <span className="px-3 py-1 rounded-md text-base"
+                    style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', color: '#60a5fa' }}>
+                    {tx.roundLabel(roundScores.length + 1, 5)}
+                  </span>
                 </div>
               </header>
-              
+
               <div className="flex-grow flex flex-row overflow-hidden">
-                {/* Left Column: Preview & Info */}
-                <div className="w-1/3 border-r border-outline p-6 flex flex-col gap-6 bg-surface-container/30">
-                  <div className="flex flex-col gap-1">
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Live Preview</h2>
-                    <p className="text-on-surface-variant font-mono text-[9px] uppercase tracking-widest">Observe your current curve behavior</p>
+                <div className="w-1/3 p-6 flex flex-col gap-5 overflow-hidden"
+                  style={{ borderRight: '1px solid rgba(42,42,90,0.8)', background: 'rgba(7,7,26,0.4)' }}>
+                  <div>
+                    <h2 className="text-xl font-bold uppercase tracking-tighter text-on-surface">{tx.livePreview}</h2>
+                    <p className="text-on-surface-variant font-mono text-sm uppercase tracking-widest mt-0.5">{tx.livePreviewDesc}</p>
                   </div>
-
-                  <div className="w-full">
-                    <SimulationStage 
-                      referenceBezier={randomTarget}
-                      userBezier={userBezier}
-                      isPlayingReference={false}
-                      isPlayingUser={isPlayingUser}
-                      onAnimationComplete={handleAnimationComplete}
-                      duration={1}
-                    />
-                  </div>
-
-                  <div className="mt-auto p-4 border border-outline bg-surface-container text-[10px] font-mono text-on-surface-variant leading-relaxed">
-                    <p className="font-bold text-primary mb-2 uppercase">Pro Tips:</p>
+                  <SimulationStage
+                    referenceBezier={randomTarget} userBezier={userBezier}
+                    isPlayingReference={false} isPlayingUser={isPlayingUser}
+                    onAnimationComplete={handleAnimationComplete} duration={1} tx={tx}
+                  />
+                  <div className="mt-auto p-4 rounded-xl text-base font-mono text-on-surface-variant leading-relaxed"
+                    style={{ background: 'rgba(11,11,30,0.6)', border: '1px solid rgba(42,42,90,0.6)' }}>
+                    <p className="font-bold text-primary mb-2 uppercase">{tx.proTips}</p>
                     <ul className="list-disc pl-4 space-y-1">
-                      <li>Hold <kbd className="bg-surface px-1 border border-outline">SHIFT</kbd> to snap to grid</li>
-                      <li>Y-axis is expanded for <span className="text-primary">Bounce</span> & <span className="text-primary">Elastic</span> effects</li>
-                      <li>Match the ball's rhythm, not just the curve shape</li>
+                      <li>{tx.tipShift}</li>
+                      <li>{tx.tipBounce}</li>
+                      <li>{tx.tipRhythm}</li>
                     </ul>
                   </div>
                 </div>
 
-                {/* Right Column: Editor */}
                 <div className="flex-grow p-6 flex flex-col gap-4 overflow-hidden">
-                  <div className="flex flex-col gap-1">
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Bezier Workspace</h2>
-                    <p className="text-on-surface-variant font-mono text-[9px] uppercase tracking-widest">Adjust control points to match the motion</p>
+                  <div>
+                    <h2 className="text-xl font-bold uppercase tracking-tighter text-on-surface">{tx.bezierWorkspace}</h2>
+                    <p className="text-on-surface-variant font-mono text-sm uppercase tracking-widest mt-0.5">{tx.workspaceDesc}</p>
                   </div>
-
                   <div className="flex-grow flex items-center justify-center min-h-0">
                     <div className="w-full max-w-2xl h-full flex items-center">
-                      <BezierEditor 
-                        value={userBezier} 
-                        onChange={setUserBezier} 
-                        hideValues={gameMode === 'hard'}
-                      />
+                      <BezierEditor value={userBezier} onChange={setUserBezier} hideValues={gameMode === 'hard'} />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <footer className="h-20 px-8 border-t border-outline flex items-center justify-between bg-surface-container">
-                <motion.button 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+              <footer className="h-20 px-8 flex items-center justify-between"
+                style={{ borderTop: '1px solid rgba(42,42,90,0.8)', background: 'rgba(11,11,30,0.7)' }}>
+                <motion.button
+                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                   onClick={() => setUserBezier([0.25, 0.1, 0.25, 1])}
-                  className="flex items-center gap-2 px-5 py-2.5 border border-outline text-on-surface-variant font-bold uppercase tracking-widest text-[10px] hover:bg-surface transition-colors"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold uppercase tracking-widest text-base transition-all"
+                  style={{ background: 'rgba(42,42,90,0.3)', border: '1px solid rgba(42,42,90,0.8)', color: '#7070a0' }}
                 >
-                  <RefreshCw size={12} /> Reset
+                  <RefreshCw size={12} /> {tx.resetBtn}
                 </motion.button>
-                <motion.button 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <motion.button
+                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                   onClick={handleSubmit}
-                  className="px-10 py-3.5 bg-primary text-on-primary font-bold uppercase tracking-widest text-xs hover:brightness-110 transition-all"
+                  className="aurora-btn px-10 py-3.5 rounded-xl font-bold uppercase tracking-widest text-base transition-all"
+                  style={{ color: '#04040f' }}
                 >
-                  Apply & Compare
+                  {tx.applyCompare}
                 </motion.button>
               </footer>
             </div>
           </motion.div>
         )}
 
+        {/* ── RESULT ── */}
         {gameState === 'result' && (
-          <motion.div 
+          <motion.div
             key="result"
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.4 }}
+            initial={{ opacity: 0, scale: 1.08 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="h-full flex items-center justify-center p-4 md:p-8"
           >
-            <div className="w-full max-w-3xl h-full max-h-[90vh] flex flex-col border border-outline bg-surface text-on-surface font-body shadow-2xl overflow-hidden">
-              <header className="h-14 px-6 flex items-center justify-between border-b border-outline bg-surface-container">
+            <div className="w-full max-w-3xl h-full max-h-[90vh] flex flex-col panel-glow rounded-2xl overflow-hidden">
+              <header className="h-14 px-6 flex items-center justify-between"
+                style={{ borderBottom: '1px solid rgba(42,42,90,0.8)', background: 'rgba(11,11,30,0.7)' }}>
                 <div className="flex items-center gap-3">
-                  <Activity className="text-primary" size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Analysis Result</span>
+                  <Activity className="text-primary" size={15} />
+                  <span className="text-base font-bold uppercase tracking-widest text-on-surface">{tx.analysisResult}</span>
                 </div>
               </header>
-              
-              <div className="flex-grow p-8 flex flex-col items-center justify-center text-center gap-4 overflow-y-auto">
-                <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-                  className={cn(
-                    "w-16 h-16 flex items-center justify-center border-2",
-                    roundScores[roundScores.length - 1] >= 90 ? "border-primary text-primary" : "border-outline text-on-surface-variant"
-                  )}
+
+              <div className="flex-grow p-8 flex flex-col items-center justify-center text-center gap-5 overflow-y-auto">
+                <motion.div
+                  initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.15 }}
+                  className="w-16 h-16 flex items-center justify-center rounded-2xl"
+                  style={roundScores[roundScores.length - 1] >= 90
+                    ? { background: 'rgba(176,110,255,0.15)', border: '2px solid rgba(176,110,255,0.6)' }
+                    : { background: 'rgba(42,42,90,0.3)', border: '2px solid rgba(42,42,90,0.8)' }}
                 >
-                  {roundScores[roundScores.length - 1] >= 90 ? <Trophy size={32} /> : <RefreshCw size={32} />}
+                  {roundScores[roundScores.length - 1] >= 90
+                    ? <Trophy size={30} style={{ color: '#b06eff' }} />
+                    : <RefreshCw size={30} className="text-on-surface-variant" />}
                 </motion.div>
 
                 <div className="space-y-1">
-                  <h3 className="text-3xl font-black uppercase tracking-tighter">
-                    {roundScores[roundScores.length - 1] >= 90 ? "Masterful!" : "Analyzed"}
+                  <h3 className={cn("text-3xl font-black uppercase tracking-tighter", roundScores[roundScores.length - 1] >= 90 ? "text-primary" : "text-on-surface")}>
+                    {roundScores[roundScores.length - 1] >= 90 ? tx.masterful : tx.analyzed}
                   </h3>
-                  <p className="text-on-surface-variant font-mono text-[10px] uppercase tracking-widest">Round {roundScores.length} Accuracy</p>
+                  <p className="text-on-surface-variant font-mono text-base uppercase tracking-widest">{tx.roundAccuracy(roundScores.length)}</p>
                 </div>
 
                 <div className="w-full max-w-md">
-                  <SimulationStage 
-                    referenceBezier={randomTarget}
-                    userBezier={userBezier}
-                    isPlayingReference={isPlayingReference}
-                    isPlayingUser={isPlayingUser}
-                    onAnimationComplete={handleAnimationComplete}
-                    duration={1}
-                    forceComparisonMode={true}
+                  <SimulationStage
+                    referenceBezier={randomTarget} userBezier={userBezier}
+                    isPlayingReference={isPlayingReference} isPlayingUser={isPlayingUser}
+                    onAnimationComplete={handleAnimationComplete} duration={1}
+                    forceComparisonMode={true} tx={tx}
                   />
                 </div>
 
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                   className="text-6xl font-black font-mono text-primary"
                 >
                   {roundScores[roundScores.length - 1]}%
                 </motion.div>
 
-                <motion.button 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  whileHover={{ x: 5 }}
+                <motion.button
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                  whileHover={{ x: 5 }} whileTap={{ scale: 0.97 }}
                   onClick={nextRound}
-                  className="px-10 py-4 bg-primary text-on-primary font-bold uppercase tracking-widest text-xs hover:brightness-110 transition-all flex items-center justify-center gap-3"
+                  className="aurora-btn px-10 py-4 rounded-xl font-bold uppercase tracking-widest text-base flex items-center justify-center gap-3 transition-all"
+                  style={{ color: '#04040f' }}
                 >
-                  {roundScores.length < 5 ? "Next Round" : "Final Results"} <ArrowRight size={18} />
+                  {roundScores.length < 5 ? tx.nextRound : tx.finalResults} <ArrowRight size={16} />
                 </motion.button>
               </div>
             </div>
           </motion.div>
         )}
 
+        {/* ── FINAL ── */}
         {gameState === 'final' && (
-          <motion.div 
+          <motion.div
             key="final"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
             className="h-full flex items-center justify-center p-4 md:p-8"
           >
-            <div className="w-full max-w-5xl h-full max-h-[85vh] flex flex-col items-center justify-center border border-outline bg-surface text-on-surface font-body shadow-2xl text-center p-12 md:p-20 gap-8">
-              <motion.div
-                animate={{ rotate: [0, -10, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Trophy className="text-primary" size={100} />
-              </motion.div>
-              <div className="space-y-2">
-                <h2 className="text-5xl font-black uppercase tracking-tighter">Training Complete</h2>
-                <p className="text-on-surface-variant font-mono text-sm uppercase tracking-widest">Final Performance Evaluation</p>
-              </div>
-              
-              <div className="text-9xl font-black font-mono text-primary my-4">
-                {roundScores.length > 0 
-                  ? `${Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)}%`
-                  : <span className="text-6xl text-primary animate-pulse">TIME OUT</span>
-                }
+            <div className="w-full max-w-5xl h-full max-h-[85vh] flex flex-col items-center justify-center panel-glow rounded-2xl text-center p-12 md:p-20 gap-8 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <div className="graph-grid w-full h-full rounded-2xl" />
               </div>
 
-              <div className="grid grid-cols-5 gap-4 w-full max-w-md mb-8">
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                className="relative z-10"
+              >
+                <Trophy className="text-primary" size={90} />
+              </motion.div>
+
+              <div className="space-y-2 relative z-10">
+                <h2 className="text-4xl font-black uppercase tracking-tighter text-primary">{tx.trainingComplete}</h2>
+                <p className="text-on-surface-variant font-mono text-base uppercase tracking-widest">{tx.finalEval}</p>
+              </div>
+
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 180, damping: 15, delay: 0.3 }}
+                className="text-8xl font-black font-mono text-primary relative z-10"
+              >
+                {roundScores.length > 0
+                  ? `${Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)}%`
+                  : <span className="text-6xl animate-pulse" style={{ color: '#b06eff' }}>{tx.timeout}</span>}
+              </motion.div>
+
+              <div className="grid grid-cols-5 gap-3 w-full max-w-md relative z-10">
                 {roundScores.map((s, i) => (
-                  <motion.div 
-                    key={i}
-                    initial={{ height: 0 }}
-                    animate={{ height: "auto" }}
-                    transition={{ delay: 0.5 + i * 0.1 }}
-                    className="flex flex-col gap-2"
+                  <motion.div key={i}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.1 }}
+                    className="flex flex-col gap-2 items-center"
                   >
-                    <span className="text-[10px] text-on-surface-variant font-mono">R{i+1}</span>
-                    <div className="h-2 bg-surface-container border border-outline overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${s}%` }}
-                        transition={{ duration: 1, delay: 1 + i * 0.1 }}
-                        className="h-full bg-primary" 
+                    <span className="text-base text-on-surface-variant font-mono">R{i + 1}</span>
+                    <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(42,42,90,0.6)' }}>
+                      <motion.div
+                        initial={{ width: 0 }} animate={{ width: `${s}%` }}
+                        transition={{ duration: 1, delay: 1 + i * 0.12, ease: "easeOut" }}
+                        className="h-full rounded-full score-bar"
                       />
                     </div>
-                    <span className="text-xs font-mono">{s}%</span>
+                    <span className="text-base font-mono text-on-surface">{s}%</span>
                   </motion.div>
                 ))}
               </div>
 
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <motion.button
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={restartGame}
-                className="px-12 py-5 border border-primary text-primary font-bold uppercase tracking-widest text-sm hover:bg-primary hover:text-on-primary transition-all"
+                className="px-12 py-4 rounded-xl font-bold uppercase tracking-widest text-base transition-all relative z-10"
+                style={{ background: 'rgba(176,110,255,0.1)', border: '1px solid rgba(176,110,255,0.5)', color: '#b06eff' }}
               >
-                Restart Session
+                {tx.restartSession}
               </motion.button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Footer License */}
+      {/* Footer */}
       <footer className="fixed bottom-4 left-0 right-0 pointer-events-none flex justify-center z-[100]">
-        <div className="bg-surface/80 backdrop-blur-sm px-4 py-1.5 border border-outline rounded-full shadow-sm">
-          <p className="text-[10px] font-mono text-on-surface-variant uppercase tracking-[0.2em]">
-            <span className="text-primary font-black">blurChan.</span> with Gemini Ai studio
+        <div className="px-4 py-1.5 rounded-full"
+          style={{ background: 'rgba(4,4,15,0.7)', border: '1px solid rgba(42,42,90,0.6)', backdropFilter: 'blur(8px)' }}>
+          <p className="text-xs font-mono text-on-surface-variant uppercase tracking-[0.15em]">
+            <span className="font-bold" style={{ color: '#b06eff' }}>blurChan.</span> with Gemini Ai studio
           </p>
         </div>
       </footer>
